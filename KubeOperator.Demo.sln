@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34309.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KubeOperator.Demo", "KubeOperator.Demo\KubeOperator.Demo.csproj", "{CFB0B495-3F0D-4EF6-B3C2-48FDC112548E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KubeOperator.Demo", "KubeOperator.Demo\KubeOperator.Demo.csproj", "{CFB0B495-3F0D-4EF6-B3C2-48FDC112548E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KubeOperator.Demo.Tests", "KubeOperator.Demo.Tests\KubeOperator.Demo.Tests.csproj", "{8A87F96D-66F5-4935-AC91-3576AD443787}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{CFB0B495-3F0D-4EF6-B3C2-48FDC112548E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CFB0B495-3F0D-4EF6-B3C2-48FDC112548E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CFB0B495-3F0D-4EF6-B3C2-48FDC112548E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A87F96D-66F5-4935-AC91-3576AD443787}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A87F96D-66F5-4935-AC91-3576AD443787}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A87F96D-66F5-4935-AC91-3576AD443787}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A87F96D-66F5-4935-AC91-3576AD443787}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

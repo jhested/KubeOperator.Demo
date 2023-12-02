@@ -13,8 +13,8 @@ namespace KubeOperator.Demo
             // Create in AD
 
             // Request app reg via azure resource
-
             
+            // Set status
         }
     }
 }
