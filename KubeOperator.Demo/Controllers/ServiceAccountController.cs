@@ -1,5 +1,4 @@
 using k8s.Models;
-using KubeOperator.Demo.Entities;
 using KubeOps.Operator.Controller;
 using KubeOps.Operator.Controller.Results;
 using KubeOps.Operator.Rbac;

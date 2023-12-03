@@ -2,11 +2,11 @@
 using KubeOperator.Demo.PrinterColumns;
 using KubeOps.Operator.Entities;
 
-namespace KubeOperator.Demo.Entities
+namespace KubeOperator.Demo
 {
     [KubernetesEntity(Group = "activedirectory.operatordemo.dk", ApiVersion = "v1", Kind = "WindowsServiceAccount", PluralName = "windowsserviceaccounts")]
     [ReadyPrinterColumn, ReasonPrinterColumn, AgePrinterColumn]
-    public class V1Alpha1ServiceAccount : CustomKubernetesEntity<V1Alpha1ServiceAccountSpec, Status>
+    public class V1Alpha1ServiceAccount : CustomKubernetesEntity<V1Alpha1ServiceAccountSpec, V1Alpha1ServiceAccountStatus>
     {
 
     }
