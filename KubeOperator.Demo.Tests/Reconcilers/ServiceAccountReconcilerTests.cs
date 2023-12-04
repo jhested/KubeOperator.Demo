@@ -1,5 +1,6 @@
 ﻿using AutoFixture.Xunit2;
 using k8s.Models;
+using KubeOperator.Demo.KStatus;
 using KubeOps.KubernetesClient;
 using Moq;
 
@@ -35,6 +36,7 @@ namespace KubeOperator.Demo.Tests.Reconcilers
         public async Task ReconcileAsync_Sets_Ready_Status_To_True_When_Ready_Reconcile_Succeeds(
             [Frozen] IActiveDirectoryClient activeDirectoryClient,
             [Frozen] IMicrosoftEntraClient entraClient,
+            [Frozen] IKubernetesClient kubernetesClient,
             V1Alpha1ServiceAccount entity,
             ServiceAccountReconciler sut)
         {
@@ -49,11 +51,15 @@ namespace KubeOperator.Demo.Tests.Reconcilers
             await sut.ReconcileAsync(entity);
             var status = entity.Status.GetCondition(ConditionType.Ready);
             Assert.Equal(ConditionStatus.True, status!.Value.Status);
+
+            Mock.Get(kubernetesClient)
+                .Verify(x => x.UpdateStatus(entity), Times.Exactly(2));
         }
 
         [Theory, AutoMoqData]
         public async Task ReconcileAsync_Requests_ServiceAccount_When_Not_Exists(
             [Frozen] IActiveDirectoryClient activeDirectoryClient,
+            [Frozen] IKubernetesClient kubernetesClient,
             V1Alpha1ServiceAccount entity,
             ServiceAccountReconciler sut)
         {
@@ -64,12 +70,55 @@ namespace KubeOperator.Demo.Tests.Reconcilers
             await sut.ReconcileAsync(entity);
 
             mock.Verify(x => x.RequestServiceAccountAsync(It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()));
+
+            var status = entity.Status.GetCondition(ConditionType.Ready)!.Value;
+
+            Assert.Equal(ConditionReason.ServiceAccountRequested, status.Reason);
+            Assert.Equal(ConditionStatus.False, status.Status);
+
+            Mock.Get(kubernetesClient)
+                .Verify(x => x.UpdateStatus(entity), Times.Exactly(2));
         }
 
         [Theory, AutoMoqData]
-        public async Task ReconcileAsync_Creates_AppReg_When_Not_Exists(
+        public async Task ReconcileAsync_Does_Not_Request_ServiceAccount_When_Has_Been_Requested(
             [Frozen] IActiveDirectoryClient activeDirectoryClient,
-            [Frozen] IMicrosoftEntraClient entraClient, 
+            V1Alpha1ServiceAccount entity,
+            ServiceAccountReconciler sut)
+        {
+            var mock = Mock.Get(activeDirectoryClient);
+            mock.Setup(x => x.ServiceAccountExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            entity.Status.ObservedGeneration = entity.Generation();
+
+            entity.Status.SetCondition(ConditionReason.ServiceAccountRequested, ConditionType.Ready, ConditionStatus.False);
+
+            await sut.ReconcileAsync(entity);
+
+            mock.Verify(x => x.RequestServiceAccountAsync(It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Theory, AutoMoqData]
+        public async Task ReconcileAsync_Does_Not_Request_ServiceAccount_When_Exists(
+            [Frozen] IActiveDirectoryClient activeDirectoryClient,
+            V1Alpha1ServiceAccount entity,
+            ServiceAccountReconciler sut)
+        {
+            var mock = Mock.Get(activeDirectoryClient);
+            mock.Setup(x => x.ServiceAccountExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            await sut.ReconcileAsync(entity);
+
+            mock.Verify(x => x.RequestServiceAccountAsync(It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Theory, AutoMoqData]
+        public async Task ReconcileAsync_Requests_AppReg_When_Not_Exists(
+            [Frozen] IActiveDirectoryClient activeDirectoryClient,
+            [Frozen] IMicrosoftEntraClient entraClient,
+            [Frozen] IKubernetesClient kubernetesClient,
             V1Alpha1ServiceAccount entity,
             ServiceAccountReconciler sut)
         {
@@ -84,6 +133,58 @@ namespace KubeOperator.Demo.Tests.Reconcilers
             await sut.ReconcileAsync(entity);
 
             entraMock.Verify(x => x.CreateAppRegistrationAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()));
+
+            var status = entity.Status.GetCondition(ConditionType.Ready)!.Value;
+
+            Assert.Equal(ConditionReason.AppRegistrationRequested, status.Reason);
+            Assert.Equal(ConditionStatus.False, status.Status);
+
+            Mock.Get(kubernetesClient)
+                .Verify(x => x.UpdateStatus(entity), Times.Exactly(2));
+        }
+
+        [Theory, AutoMoqData]
+        public async Task ReconcileAsync_Does_Not_Request_AppReg_When_Has_Been_Requested(
+            [Frozen] IActiveDirectoryClient activeDirectoryClient,
+            [Frozen] IMicrosoftEntraClient entraClient,
+            V1Alpha1ServiceAccount entity,
+            ServiceAccountReconciler sut)
+        {
+            var adMock = Mock.Get(activeDirectoryClient);
+            adMock.Setup(x => x.ServiceAccountExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var entraMock = Mock.Get(entraClient);
+            entraMock.Setup(x => x.AppRegistrationExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            entity.Status.ObservedGeneration = entity.Generation();
+
+            entity.Status.SetCondition(ConditionReason.AppRegistrationRequested, ConditionType.Ready, ConditionStatus.False);
+
+            await sut.ReconcileAsync(entity);
+
+            entraMock.Verify(x => x.CreateAppRegistrationAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Theory, AutoMoqData]
+        public async Task ReconcileAsync_Does_Not_Request_AppReg_When_Exists(
+            [Frozen] IActiveDirectoryClient activeDirectoryClient,
+            [Frozen] IMicrosoftEntraClient entraClient,
+            V1Alpha1ServiceAccount entity,
+            ServiceAccountReconciler sut)
+        {
+            var adMock = Mock.Get(activeDirectoryClient);
+            adMock.Setup(x => x.ServiceAccountExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var entraMock = Mock.Get(entraClient);
+            entraMock.Setup(x => x.AppRegistrationExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            await sut.ReconcileAsync(entity);
+
+            entraMock.Verify(x => x.CreateAppRegistrationAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
     }
 }
