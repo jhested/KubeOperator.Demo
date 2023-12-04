@@ -7,7 +7,7 @@ namespace KubeOperator.Demo
     public class ServiceAccountReconciler(
         IKubernetesClient kubernetesClient,
         IActiveDirectoryClient activeDirectoryClient,
-        IMicrosoftEntraClient microsoftEntraClient)
+        IMicrosoftEntraClient microsoftEntraClient) : IServiceAccountReconciler
     {
         public IKubernetesClient KubernetesClient { get; } = kubernetesClient;
         public IActiveDirectoryClient ActiveDirectoryClient { get; } = activeDirectoryClient;
@@ -17,7 +17,7 @@ namespace KubeOperator.Demo
         {
             // Set status
 
-            if(entity.Status.ObservedGeneration != entity.Generation())
+            if (entity.Status.ObservedGeneration != entity.Generation())
             {
                 entity.Status.ObservedGeneration = entity.Generation();
                 entity.Status.SetCondition(ConditionReason.Reconciling, ConditionType.Ready, ConditionStatus.Unknown);
@@ -25,13 +25,13 @@ namespace KubeOperator.Demo
             }
 
             // Check AD
-            if(await ShouldRequestServiceAccount(entity, cancellationToken))
+            if (await ShouldRequestServiceAccount(entity, cancellationToken))
             {
                 await ActiveDirectoryClient.RequestServiceAccountAsync(entity.Spec.Name, entity.Spec.Memberships.Select(x => x.GroupName), cancellationToken);
                 return await NotReady(entity, ConditionReason.ServiceAccountRequested, "Waiting for Windows AD");
             }
 
-            if(await ShouldRequestAzureAppRegistration(entity, cancellationToken))
+            if (await ShouldRequestAzureAppRegistration(entity, cancellationToken))
             {
                 await MicrosoftEntraClient.CreateAppRegistrationAsync(entity.Spec.Name, cancellationToken);
                 return await NotReady(entity, ConditionReason.AppRegistrationRequested, "Waiting for Azure AD");
@@ -57,7 +57,7 @@ namespace KubeOperator.Demo
         {
             var status = entity.Status.GetCondition(ConditionType.Ready)!;
             if (!await MicrosoftEntraClient.AppRegistrationExistsAsync(entity.Spec.Name, cancellationToken)
-                && status.Value.Reason != ConditionReason.ServiceAccountRequested)
+                && status.Value.Reason != ConditionReason.AppRegistrationRequested)
             {
                 return true;
             }
@@ -66,7 +66,7 @@ namespace KubeOperator.Demo
         }
 
         private async Task<ReconcileResult> NotReady(V1Alpha1ServiceAccount entity, string reason, string message)
-{
+        {
             entity.Status.SetCondition(reason, ConditionType.Ready, ConditionStatus.False, message);
             await KubernetesClient.UpdateStatus(entity);
             return new ReconcileResult { RequeueAfter = TimeSpan.FromMinutes(5) };

@@ -6,9 +6,11 @@ namespace KubeOperator.Demo
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddKubernetesOperator(); 
+            services.AddKubernetesOperator();
 
-            // your own dependencies
+            services.AddSingleton<IActiveDirectoryClient, ActiveDirectoryClient>();
+            services.AddSingleton<IMicrosoftEntraClient, MicrosoftEntraClient>();
+
             services.AddTransient<ServiceAccountReconciler>();
         }
 
