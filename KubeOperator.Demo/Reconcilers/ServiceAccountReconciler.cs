@@ -48,6 +48,8 @@ namespace KubeOperator.Demo
                 return new ReconcileResult { RequeueAfter = TimeSpan.FromMinutes(2) };
             }
 
+            entity.Status.AzureAppRegistration = await MicrosoftEntraClient.GetAppRegistrationAsync(entity.Spec.Name, cancellationToken);
+
             entity.Status.SetCondition(ConditionReason.ReconciliationSucceeded, ConditionType.Ready, ConditionStatus.True);
             await KubernetesClient.UpdateStatus(entity);
 

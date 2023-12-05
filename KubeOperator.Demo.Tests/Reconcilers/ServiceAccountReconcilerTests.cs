@@ -186,5 +186,37 @@ namespace KubeOperator.Demo.Tests.Reconcilers
 
             entraMock.Verify(x => x.CreateAppRegistrationAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
+
+
+        [Theory, AutoMoqData]
+        public async Task ReconcileAsync_Sets_AppGeistration_On_Status_When_Reconcile_Succeeds(
+            [Frozen] IActiveDirectoryClient activeDirectoryClient,
+            [Frozen] IMicrosoftEntraClient entraClient,
+            V1Alpha1ServiceAccount entity,
+            ServiceAccountReconciler sut)
+        {
+            var expectedAppId = Guid.NewGuid().ToString();
+            var expectedAppName = entity.Spec.Name;
+
+            Mock.Get(activeDirectoryClient)
+                .Setup(x => x.ServiceAccountExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            Mock.Get(entraClient)
+                .Setup(x => x.AppRegistrationExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            Mock.Get(entraClient)
+                .Setup(x => x.GetAppRegistrationAsync(entity.Spec.Name, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new AzureAppRegistration {  ApplicationId = expectedAppId, ApplictionName = expectedAppName });
+
+            await sut.ReconcileAsync(entity);
+            var status = entity.Status.GetCondition(ConditionType.Ready);
+            Assert.Equal(ConditionStatus.True, status!.Value.Status);
+
+            
+            Assert.Equal(expectedAppId, entity.Status.AzureAppRegistration.ApplicationId);
+            Assert.Equal(expectedAppName, entity.Status.AzureAppRegistration.ApplictionName);
+        }
     }
 }
